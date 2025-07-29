@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTrace: Carbon Footprint Tracker</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e0f2f7; /* Overall light background */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            overflow: hidden; /* Ensure content doesn't overflow rounded corners */
+            transition: background-color 0.5s ease-in-out; /* Smooth color transition */
+        }
+        .tab-buttons {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 2rem;
+            gap: 1rem; /* Space between tabs */
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: #e2e8f0; /* Light gray for inactive tabs */
+            color: #4a5568; /* Dark gray text */
+            transition: all 0.2s ease-in-out;
+            border: none;
+            flex-grow: 1; /* Allow tabs to grow and fill space */
+            max-width: 200px; /* Max width for each tab */
+        }
+        .tab-button.active-tab {
+            background-color: #4CAF50; /* Green for active tab */
+            color: white;
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+        .tab-button:hover:not(.active-tab) {
+            background-color: #cbd5e0; /* Slightly darker gray on hover */
+        }
+
+        .page-content {
+            width: 100%;
+            display: none; /* Hidden by default, managed by JS */
+            animation: fadeIn 0.5s ease-out;
+        }
+        .page-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        input[type="text"], input[type="password"], input[type="number"], select {
+            border: 1px solid #a7d9b8; /* Nature-friendly border */
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            transition: all 0.2s ease-in-out;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50; /* Green focus border */
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+        }
+        button:not(.tab-button) { /* Apply to non-tab buttons */
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+        button:not(.tab-button):hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+        }
+        button:not(.tab-button):active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
+        }
+        .secondary-button {
+            background-color: #6c757d;
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+        .secondary-button:hover {
+            background-color: #5a6268;
+            box-shadow: 0 6px 12px rgba(108, 117, 125, 0.4);
+        }
+        .secondary-button:active {
+            box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+        }
+        .card {
+            background-color: #f0fdf4;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            text-align: left;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 9999px;
+            height: 12px;
+            margin-top: 1.5rem;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #22c55e;
+            width: 0%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+        }
+        /* Custom styling for radio/checkbox labels */
+        .radio-option {
+            display: flex; /* Each radio option takes its own line */
+            width: 100%;
+        }
+        .radio-option label, .checkbox-option label {
+            display: flex; /* Use flex to align input and text horizontally within the label */
+            align-items: center;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            transition: color 0.2s ease-in-out;
+        }
+        .radio-option input[type="radio"], .checkbox-option input[type="checkbox"] {
+            margin-right: 0.75rem; /* Space between radio button and text */
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #68d391;
+            border-radius: 50%;
+            position: relative;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            flex-shrink: 0; /* Prevent input from shrinking */
+        }
+        .radio-option input[type="radio"]:checked {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+        }
+        .radio-option input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background-color: white;
+        }
+        .checkbox-option input[type="checkbox"] {
+            border-radius: 0.25rem;
+        }
+        .checkbox-option input[type="checkbox"]:checked {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+        }
+        .checkbox-option input[type="checkbox"]:checked::after {
+            content: '✔';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.75rem;
+        }
+        .tip-card {
+            background-color: #ecfdf5;
+            border-left: 5px solid #34d399;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            text-align: left;
+        }
+        .tip-card p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #10b981;
+        }
+        .tip-card strong {
+            color: #065f46;
+        }
+        .footer-text {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        .warning-message {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px; /* Fixed height for charts */
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="main-container">
+        <!-- Tab Buttons -->
+        <div class="tab-buttons">
+            <button class="tab-button" data-target-page="auth-section" data-color="#fcf8f3">Authentication</button>
+            <button class="tab-button" data-target-page="questionnaire-section" data-color="#f0fdf4">Questionnaire</button>
+            <button class="tab-button" data-target-page="results-section" data-color="#e6f7ff">Results</button>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="auth-section" class="page-content">
+            <div class="flex flex-col items-center mb-8">
+                <!-- Removed the leaf icon SVG as requested -->
+                <div class="w-24 h-24 mb-4"></div> <!-- Placeholder for spacing -->
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Welcome to EcoTrace</h1>
+                <p class="text-xl text-gray-700 mb-4">Track your impact, grow your green habits.</p>
+            </div>
+            <!-- Login Form -->
+            <div id="login-form" class="auth-form">
+                <div class="w-full max-w-sm">
+                    <div class="mb-4">
+                        <input type="text" id="username" placeholder="Username" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div class="mb-6">
+                        <input type="password" id="password" placeholder="Password" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <button id="login-button" class="w-full py-3 rounded-xl text-white font-semibold text-lg">Login</button>
+                    <p id="login-error" class="text-red-500 mt-4 hidden">Invalid username or password.</p>
+                    <p class="text-sm text-gray-600 mt-4">Don't have an account? <a href="#" id="show-signup-link" class="text-green-600 hover:underline">Sign Up</a></p>
+                </div>
+                <p class="footer-text">By logging in, you agree to track your carbon footprint responsibly.</p>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signup-form" class="auth-form hidden">
+                <h1 class="text-4xl font-bold text-gray-800 mb-6">Create Your Account</h1>
+                <p class="text-lg text-gray-600 mb-8">Join EcoTrace to start tracking your footprint.</p>
+                <div class="w-full max-w-sm">
+                    <div class="mb-4">
+                        <input type="text" id="signup-username" placeholder="Username" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div class="mb-4">
+                        <input type="password" id="signup-password" placeholder="Password" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div class="mb-6">
+                        <input type="password" id="signup-confirm-password" placeholder="Confirm Password" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <button id="signup-button" class="w-full py-3 rounded-xl text-white font-semibold text-lg">Sign Up</button>
+                    <p id="signup-error" class="text-red-500 mt-4 hidden"></p>
+                    <button id="back-to-login-from-signup" class="w-full py-3 rounded-xl text-white font-semibold text-lg mt-4 secondary-button">Back to Login</button>
+                </div>
+                <p class="footer-text">Your privacy is important to us. Your data will be used to help you reduce your carbon footprint.</p>
+            </div>
+        </div>
+
+        <!-- Questionnaire Section -->
+        <div id="questionnaire-section" class="page-content">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Tell Us About Your Lifestyle</h1>
+            <p class="text-md text-gray-600 mb-6">Answer a few questions to estimate your carbon footprint.</p>
+
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+
+            <form id="carbon-form" class="w-full max-w-2xl mt-8 text-left">
+                <!-- Section 1: Home Energy -->
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">1. Home Energy Consumption</h2>
+                    <div class="mb-4">
+                        <label for="household_size" class="block text-gray-700 text-sm font-medium mb-2">Number of people in your household:</label>
+                        <input type="number" id="household_size" name="household_size" placeholder="e.g., 2" min="1" value="1" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="electricity_kwh" class="block text-gray-700 text-sm font-medium mb-2">Average monthly electricity consumption (in kWh):</label>
+                        <input type="number" id="electricity_kwh" name="electricity_kwh" placeholder="e.g., 200" min="0" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="water_bill" class="block text-gray-700 text-sm font-medium mb-2">Average monthly water bill (in local currency units, or estimate equivalent):</label>
+                        <input type="number" id="water_bill" name="water_bill" placeholder="e.g., 30" min="0" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="heating_cooling_source" class="block text-gray-700 text-sm font-medium mb-2">Main heating/cooling source:</label>
+                        <select id="heating_cooling_source" name="heating_cooling_source" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="natural_gas">Natural Gas</option>
+                            <option value="electricity">Electricity (AC/Heater)</option>
+                            <option value="heating_oil">Heating Oil</option>
+                            <option value="propane">Propane</option>
+                            <option value="wood">Wood/Biomass</option>
+                            <option value="solar">Solar/Renewable</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="ac_usage_months" class="block text-gray-700 text-sm font-medium mb-2">Months per year you use AC/cooling:</label>
+                        <input type="number" id="ac_usage_months" name="ac_usage_months" placeholder="e.g., 6" min="0" max="12" value="0" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="home_type" class="block text-gray-700 text-sm font-medium mb-2">Type of home:</label>
+                        <select id="home_type" name="home_type" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="apartment">Apartment</option>
+                            <option value="detached">Detached House</option>
+                            <option value="townhouse">Townhouse/Row House</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="insulation_quality" class="block text-gray-700 text-sm font-medium mb-2">Home insulation quality:</label>
+                        <select id="insulation_quality" name="insulation_quality" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="poor">Poor</option>
+                            <option value="average">Average</option>
+                            <option value="good">Good</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="renewable_energy_source" class="block text-gray-700 text-sm font-medium mb-2">Do you use renewable energy sources (e.g., solar panels)?</label>
+                        <div>
+                            <div class="radio-option">
+                                <input type="radio" id="renewable_yes" name="renewable_energy_source" value="yes" class="mr-2">
+                                <label for="renewable_yes">Yes</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="renewable_no" name="renewable_energy_source" value="no" checked class="mr-2">
+                                <label for="renewable_no">No</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Transportation -->
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">2. Transportation Habits</h2>
+                    <div class="mb-4">
+                        <label for="car_km_week" class="block text-gray-700 text-sm font-medium mb-2">Average kilometers driven per week (your primary car):</label>
+                        <input type="number" id="car_km_week" name="car_km_week" placeholder="e.g., 100" min="0" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="car_fuel_type" class="block text-gray-700 text-sm font-medium mb-2">Car fuel type:</label>
+                        <select id="car_fuel_type" name="car_fuel_type" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="petrol">Petrol/Gasoline</option>
+                            <option value="diesel">Diesel</option>
+                            <option value="hybrid">Hybrid</option>
+                            <option value="electric">Electric</option>
+                            <option value="no_car">I don't own a car</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="car_efficiency_l_100km" class="block text-gray-700 text-sm font-medium mb-2">Car fuel efficiency (L/100km, leave blank if no car):</label>
+                        <input type="number" id="car_efficiency_l_100km" name="car_efficiency_l_100km" placeholder="e.g., 7.5" min="0" step="0.1" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="motorcycle_km_week" class="block text-gray-700 text-sm font-medium mb-2">Average kilometers driven per week (motorcycle/scooter):</label>
+                        <input type="number" id="motorcycle_km_week" name="motorcycle_km_week" placeholder="e.g., 50" min="0" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="public_transport_km_week" class="block text-gray-700 text-sm font-medium mb-2">Average kilometers on public transport per week:</label>
+                        <input type="number" id="public_transport_km_week" name="public_transport_km_week" placeholder="e.g., 20" min="0" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="commute_distance_km_day" class="block text-gray-700 text-sm font-medium mb-2">Average commute distance per day (km, one-way):</label>
+                        <input type="number" id="commute_distance_km_day" name="commute_distance_km_day" placeholder="e.g., 15" min="0" step="0.1" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="commute_mode" class="block text-gray-700 text-sm font-medium mb-2">Primary commute mode:</label>
+                        <select id="commute_mode" name="commute_mode" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="car">Car</option>
+                            <option value="motorcycle">Motorcycle/Scooter</option>
+                            <option value="public_bus">Public Bus</option>
+                            <option value="public_train_metro">Public Train/Metro</option>
+                            <option value="walk_bike">Walk/Bike</option>
+                            <option value="work_from_home">Work from Home</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="flights_annual" class="block text-gray-700 text-sm font-medium mb-2">Number of flights per year (round trip):</label>
+                        <select id="flights_annual" name="flights_annual" class="w-full">
+                            <option value="0">0</option>
+                            <option value="1-2_short">1-2 short-haul (e.g., within country)</option>
+                            <option value="3-5_short_1-2_medium">3-5 short-haul / 1-2 medium-haul (e.g., regional)</option>
+                            <option value="6+_short_3+_medium_1+_long">6+ short-haul / 3+ medium-haul / 1+ long-haul (e.g., intercontinental)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="flight_class" class="block text-gray-700 text-sm font-medium mb-2">Typical flight class:</label>
+                        <select id="flight_class" name="flight_class" class="w-full">
+                            <option value="economy">Economy</option>
+                            <option value="business">Business</option>
+                            <option value="first">First Class</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section 3: Diet & Food -->
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">3. Diet and Food Choices</h2>
+                    <div class="mb-4">
+                        <label for="diet_type" class="block text-gray-700 text-sm font-medium mb-2">Your typical diet:</label>
+                        <div>
+                            <div class="radio-option">
+                                <input type="radio" id="diet_high_meat" name="diet_type" value="high_meat" checked class="mr-2">
+                                <label for="diet_high_meat">High Meat (meat with most meals)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="diet_medium_meat" name="diet_type" value="medium_meat" class="mr-2">
+                                <label for="diet_medium_meat">Medium Meat (meat a few times a week)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="diet_low_meat" name="diet_type" value="low_meat" class="mr-2">
+                                <label for="diet_low_meat">Low Meat (meat once a week or less)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="diet_vegetarian" name="diet_type" value="vegetarian" class="mr-2">
+                                <label for="diet_vegetarian">Vegetarian</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="diet_vegan" name="diet_type" value="vegan" class="mr-2">
+                                <label for="diet_vegan">Vegan</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="dairy_consumption" class="block text-gray-700 text-sm font-medium mb-2">How often do you consume dairy products?</label>
+                        <select id="dairy_consumption" name="dairy_consumption" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="daily">Daily</option>
+                            <option value="few_times_week">A few times a week</option>
+                            <option value="rarely_never">Rarely/Never</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="food_waste_level" class="block text-gray-700 text-sm font-medium mb-2">How much food do you typically waste?</label>
+                        <select id="food_waste_level" name="food_waste_level" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="very_little">Very Little</option>
+                            <option value="some">Some</option>
+                            <option value="a_lot">A Lot</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="food_origin_preference" class="block text-gray-700 text-sm font-medium mb-2">How often do you prioritize local/seasonal food?</label>
+                        <select id="food_origin_preference" name="food_origin_preference" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="always">Always/Mostly</option>
+                            <option value="sometimes">Sometimes</option>
+                            <option value="rarely">Rarely</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="restaurant_frequency" class="block text-gray-700 text-sm font-medium mb-2">How often do you eat out or get takeaway?</label>
+                        <select id="restaurant_frequency" name="restaurant_frequency" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="daily">Daily</option>
+                            <option value="few_times_week">A few times a week</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="rarely">Rarely</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section 4: Waste & Recycling -->
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">4. Waste and Recycling Habits</h2>
+                    <div class="mb-4">
+                        <label for="recycling_habits" class="block text-gray-700 text-sm font-medium mb-2">How diligently do you recycle?</label>
+                        <select id="recycling_habits" name="recycling_habits" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="excellent">Excellent (recycle everything possible)</option>
+                            <option value="good">Good (recycle most common items)</option>
+                            <option value="poor">Poor (rarely recycle)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="composting_status" class="block text-gray-700 text-sm font-medium mb-2">Do you compost food scraps?</label>
+                        <div>
+                            <div class="radio-option">
+                                <input type="radio" id="composting_yes" name="composting_status" value="yes" class="mr-2">
+                                <label for="composting_yes">Yes</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="composting_no" name="composting_status" value="no" checked class="mr-2">
+                                <label for="composting_no">No</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="single_use_plastics" class="block text-gray-700 text-sm font-medium mb-2">How often do you use single-use plastics (bags, bottles, containers)?</label>
+                        <select id="single_use_plastics" name="single_use_plastics" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="frequently">Frequently</option>
+                            <option value="moderately">Moderately</option>
+                            <option value="rarely">Rarely/Avoid</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="e_waste_disposal_frequency" class="block text-gray-700 text-sm font-medium mb-2">How often do you dispose of electronics (e-waste)?</label>
+                        <select id="e_waste_disposal_frequency" name="e_waste_disposal_frequency" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="every_few_years">Every few years</option>
+                            <option value="rarely_never">Rarely/Never</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="clothing_disposal_frequency" class="block text-gray-700 text-sm font-medium mb-2">How often do you dispose of clothes (not donating/reselling)?</label>
+                        <select id="clothing_disposal_frequency" name="clothing_disposal_frequency" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="frequently">Frequently (seasonal cleanouts)</option>
+                            <option value="moderately">Moderately (once a year)</option>
+                            <option value="rarely">Rarely</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section 5: Shopping & Consumption -->
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5. Shopping and Consumption</h2>
+                    <div class="mb-4">
+                        <label for="shopping_frequency" class="block text-gray-700 text-sm font-medium mb-2">How often do you buy new non-essential items (clothes, gadgets, etc.)?</label>
+                        <select id="shopping_frequency" name="shopping_frequency" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="frequently">Frequently (weekly/bi-weekly)</option>
+                            <option value="moderately">Moderately (monthly)</option>
+                            <option value="rarely">Rarely (a few times a year)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="secondhand_use" class="block text-gray-700 text-sm font-medium mb-2">Do you often buy secondhand items?</label>
+                        <div>
+                            <div class="radio-option">
+                                <input type="radio" id="secondhand_yes" name="secondhand_use" value="yes" class="mr-2">
+                                <label for="secondhand_yes">Yes</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="secondhand_no" name="secondhand_use" value="no" checked class="mr-2">
+                                <label for="secondhand_no">No</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="electronics_purchases" class="block text-gray-700 text-sm font-medium mb-2">How often do you buy new electronics?</label>
+                        <select id="electronics_purchases" name="electronics_purchases" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="frequently">Frequently (yearly)</option>
+                            <option value="moderately">Moderately (every 2-3 years)</option>
+                            <option value="rarely">Rarely (every 4+ years)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="pet_ownership" class="block text-gray-700 text-sm font-medium mb-2">Do you own pets?</label>
+                        <div>
+                            <div class="radio-option">
+                                <input type="radio" id="pet_yes" name="pet_ownership" value="yes" class="mr-2">
+                                <label for="pet_yes">Yes</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="pet_no" name="pet_ownership" value="no" checked class="mr-2">
+                                <label for="pet_no">No</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4" id="pet_type_container" style="display: none;">
+                        <label for="pet_type" class="block text-gray-700 text-sm font-medium mb-2">What type of pet?</label>
+                        <select id="pet_type" name="pet_type" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="small_pet">Small (e.g., fish, hamster)</option>
+                            <option value="medium_pet">Medium (e.g., cat, small dog)</option>
+                            <option value="large_pet">Large (e.g., large dog)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="digital_footprint_level" class="block text-gray-700 text-sm font-medium mb-2">How would you describe your digital footprint (streaming, cloud storage)?</label>
+                        <select id="digital_footprint_level" name="digital_footprint_level" class="w-full">
+                            <option value="none">Select...</option>
+                            <option value="low">Low (minimal streaming, local storage)</option>
+                            <option value="medium">Medium (regular streaming, some cloud use)</option>
+                            <option value="high">High (heavy streaming, extensive cloud use)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-center w-full space-x-4">
+                    <button type="submit" class="py-3 rounded-xl text-white font-semibold text-lg mt-6 max-w-xs w-full">Calculate My Footprint</button>
+                    <button id="logout-button-questionnaire" class="py-3 rounded-xl text-white font-semibold text-lg mt-6 secondary-button max-w-xs w-full">Logout</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="page-content">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Your Carbon Footprint</h1>
+            <p class="text-md text-gray-600 mb-6">Here's an estimate of your annual carbon emissions and personalized tips.</p>
+
+            <div class="w-full max-w-2xl">
+                <!-- Warning Message -->
+                <div id="footprint-warning" class="warning-message hidden">
+                    <p><strong>High Footprint Alert!</strong> Your estimated carbon footprint is higher than the Asia Pacific average. There's a great opportunity to reduce your impact!</p>
+                </div>
+
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Estimated Annual Emissions:</h2>
+                    <p class="text-5xl font-bold text-green-700 mb-4"><span id="total-footprint">0</span> tonnes CO2e</p>
+                    <p class="text-gray-600">The average carbon footprint in the Asia Pacific region is about 7.19 tonnes CO2e per person per year. Your goal is to reduce yours!</p>
+                </div>
+
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Breakdown by Category:</h2>
+                    <div class="chart-container">
+                        <canvas id="breakdownChart"></canvas>
+                    </div>
+                    <ul id="breakdown-list" class="list-disc pl-5 text-gray-700 text-left">
+                        <!-- Breakdown items will be inserted here by JS -->
+                    </ul>
+                </div>
+
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Historical Footprint:</h2>
+                    <div class="chart-container">
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                    <p class="text-gray-600 text-left">Track your progress over time!</p>
+                </div>
+
+                <div class="card mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Personalized Eco-Tips:</h2>
+                    <div id="tips-list">
+                        <!-- Tips will be inserted here by JS -->
+                    </div>
+                </div>
+
+                <div class="flex justify-center w-full space-x-4">
+                    <button id="restart-button" class="py-3 rounded-xl text-white font-semibold text-lg mt-6 max-w-xs w-full">Recalculate / Start Again</button>
+                    <button id="logout-button-results" class="py-3 rounded-xl text-white font-semibold text-lg mt-6 secondary-button max-w-xs w-full">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainContainer = document.getElementById('main-container');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const pageContents = document.querySelectorAll('.page-content');
+
+            const authSection = document.getElementById('auth-section');
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+
+            const loginButton = document.getElementById('login-button');
+            const showSignupLink = document.getElementById('show-signup-link');
+            const signupButton = document.getElementById('signup-button');
+            const backToLoginFormSignup = document.getElementById('back-to-login-from-signup');
+
+            const questionnaireSection = document.getElementById('questionnaire-section');
+            const carbonForm = document.getElementById('carbon-form');
+            const progressBar = document.getElementById('progress-bar');
+            const logoutButtonQuestionnaire = document.getElementById('logout-button-questionnaire');
+
+            const resultsSection = document.getElementById('results-section');
+            const totalFootprintSpan = document.getElementById('total-footprint');
+            const breakdownList = document.getElementById('breakdown-list');
+            const tipsList = document.getElementById('tips-list');
+            const footprintWarning = document.getElementById('footprint-warning');
+            const restartButton = document.getElementById('restart-button');
+            const logoutButtonResults = document.getElementById('logout-button-results');
+
+            const loginError = document.getElementById('login-error');
+            const signupError = document.getElementById('signup-error');
+
+            const petOwnershipRadio = document.getElementById('pet_yes');
+            const petTypeContainer = document.getElementById('pet_type_container');
+
+            // Event listener for pet ownership radio buttons
+            document.querySelectorAll('input[name="pet_ownership"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (petOwnershipRadio.checked) {
+                        petTypeContainer.style.display = 'block';
+                    } else {
+                        petTypeContainer.style.display = 'none';
+                        document.getElementById('pet_type').value = 'none'; // Reset pet type if no pets
+                    }
+                });
+            });
+
+
+            let breakdownChartInstance = null;
+            let historyChartInstance = null;
+
+            // Load users from localStorage, or initialize with a default user
+            let users = JSON.parse(localStorage.getItem('ecotraceUsers')) || {
+                'user': 'password'
+            };
+
+            function saveUsers() {
+                localStorage.setItem('ecotraceUsers', JSON.stringify(users));
+            }
+
+            // Define section colors
+            const sectionColors = {
+                'auth-section': '#fcf8f3', // Light beige/cream
+                'questionnaire-section': '#f0fdf4', // Very light green
+                'results-section': '#e6f7ff' // Soft light blue
+            };
+
+            // --- Page/Section Navigation Functions ---
+            function showSection(sectionId, activateTab = true) {
+                // If trying to access questionnaire or results without login, redirect to auth
+                if ((sectionId === 'questionnaire-section' || sectionId === 'results-section') && !sessionStorage.getItem('loggedInUser')) {
+                    alert('Please log in to access this section.'); // Inform user
+                    sectionId = 'auth-section'; // Force navigation to auth section
+                    activateTab = true; // Ensure auth tab is activated
+                    showAuthSubForm('login-form'); // Show login form
+                }
+
+                // Hide all main sections
+                pageContents.forEach(section => section.classList.add('hidden'));
+                pageContents.forEach(section => section.classList.remove('active')); // Remove active class for animation reset
+
+                // Show the target section
+                const targetSection = document.getElementById(sectionId);
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                    targetSection.classList.add('active'); // For animation
+
+                    // Update container background color
+                    mainContainer.style.backgroundColor = sectionColors[sectionId];
+                }
+
+                // Manage active tab button
+                if (activateTab) {
+                    tabButtons.forEach(button => {
+                        if (button.dataset.targetPage === sectionId) {
+                            button.classList.add('active-tab');
+                        } else {
+                            button.classList.remove('active-tab');
+                        }
+                    });
+                }
+            }
+
+            // Function to show specific sub-form within 'auth-section'
+            function showAuthSubForm(formId) {
+                const authForms = authSection.querySelectorAll('.auth-form');
+                authForms.forEach(form => form.classList.add('hidden'));
+                document.getElementById(formId).classList.remove('hidden');
+                document.getElementById(formId).classList.add('active'); // For animation
+            }
+
+            // --- Tab Button Event Listeners ---
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetSectionId = button.dataset.targetPage;
+                    showSection(targetSectionId);
+                    // Special handling for auth-section to default to login
+                    if (targetSectionId === 'auth-section') {
+                        showAuthSubForm('login-form');
+                    }
+                });
+            });
+
+            // --- Login Logic ---
+            loginButton.addEventListener('click', () => {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                if (users[username] && users[username] === password) {
+                    loginError.classList.add('hidden');
+                    sessionStorage.setItem('loggedInUser', username); // Store logged-in user
+                    showSection('questionnaire-section'); // Navigate to questionnaire section
+                    updateProgressBar(); // Initialize progress bar
+                } else {
+                    loginError.textContent = 'Invalid username or password.';
+                    loginError.classList.remove('hidden');
+                }
+            });
+
+            // --- Sign Up Logic ---
+            showSignupLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                showAuthSubForm('signup-form'); // Show signup form within auth section
+                signupError.classList.add('hidden'); // Hide previous errors
+                document.getElementById('signup-username').value = '';
+                document.getElementById('signup-password').value = '';
+                document.getElementById('signup-confirm-password').value = '';
+            });
+
+            signupButton.addEventListener('click', () => {
+                const newUsername = document.getElementById('signup-username').value;
+                const newPassword = document.getElementById('signup-password').value;
+                const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+                if (newUsername.length < 3) {
+                    signupError.textContent = 'Username must be at least 3 characters long.';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+                if (newPassword.length < 6) {
+                    signupError.textContent = 'Password must be at least 6 characters long.';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+                if (newPassword !== confirmPassword) {
+                    signupError.textContent = 'Passwords do not match.';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+                if (users[newUsername]) {
+                    signupError.textContent = 'Username already exists. Please choose another.';
+                    signupError.classList.remove('hidden');
+                    return;
+                }
+
+                users[newUsername] = newPassword;
+                saveUsers(); // Save updated users to localStorage
+                signupError.classList.add('hidden');
+                alert('Account created successfully! Please log in.');
+                showAuthSubForm('login-form'); // Go back to login form within auth section
+            });
+
+            // --- Logout Logic ---
+            function logout() {
+                sessionStorage.removeItem('loggedInUser');
+                sessionStorage.removeItem('carbonFootprintData'); // Clear current session data
+                alert('You have been logged out.');
+                showSection('auth-section');
+                showAuthSubForm('login-form');
+            }
+
+            logoutButtonQuestionnaire.addEventListener('click', logout);
+            logoutButtonResults.addEventListener('click', logout);
+
+
+            // --- Internal Navigation Buttons ---
+            backToLoginFormSignup.addEventListener('click', () => {
+                showAuthSubForm('login-form');
+            });
+
+            restartButton.addEventListener('click', () => {
+                carbonForm.reset(); // Clear form inputs
+                sessionStorage.removeItem('carbonFootprintData'); // Clear stored data
+                showSection('questionnaire-section'); // Go to questionnaire section
+                updateProgressBar(); // Reset progress bar
+            });
+
+            // --- Questionnaire Progress Bar ---
+            const formInputs = carbonForm.querySelectorAll('input, select');
+            let completedQuestions = 0;
+            const totalQuestions = formInputs.length;
+
+            formInputs.forEach(input => {
+                input.addEventListener('change', updateProgressBar);
+                input.addEventListener('input', updateProgressBar);
+            });
+
+            function updateProgressBar() {
+                completedQuestions = 0;
+                formInputs.forEach(input => {
+                    if (input.type === 'radio') {
+                        const radioGroupName = input.name;
+                        const radioGroup = document.querySelectorAll(`input[name="${radioGroupName}"]`);
+                        let groupCompleted = false;
+                        radioGroup.forEach(radio => {
+                            if (radio.checked) {
+                                groupCompleted = true;
+                            }
+                        });
+                        if (groupCompleted && !input.dataset.counted) {
+                            completedQuestions++;
+                            input.dataset.counted = true;
+                        } else if (!groupCompleted && input.dataset.counted) {
+                            completedQuestions--;
+                            delete input.dataset.counted;
+                        }
+                    } else if (input.value && input.value !== 'none') {
+                        completedQuestions++;
+                    }
+                });
+                const progress = (completedQuestions / totalQuestions) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            // --- Carbon Footprint Calculation (Enhanced Model) ---
+            carbonForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const formData = new FormData(carbonForm);
+                const data = Object.fromEntries(formData.entries());
+
+                // Debug: Log raw form data
+                console.log("Debug: Raw form data:", data);
+
+                let totalCarbonFootprint = 0; // in kg CO2e
+                const breakdown = {};
+
+                // Emission factors (example values in kg CO2e) tailored for Asia Pacific
+                // These are more granular and consider household size where relevant
+                const factors = {
+                    // Energy (per year)
+                    electricity_kwh_factor: 0.6, // kg CO2e per kWh (Average for APAC, varies greatly by country)
+                    water_bill_factor: 5, // kg CO2e per local currency unit of water bill (estimate for water treatment/pumping)
+                    heating_cooling: { // Base annual emissions for primary source
+                        natural_gas: 1800,
+                        electricity: 1400, // For general heating/cooling, separate AC factor below
+                        heating_oil: 2200,
+                        propane: 1600,
+                        wood: 900,
+                        solar: 80,
+                        none: 0 // Added for 'none' option
+                    },
+                    ac_per_month_per_person: 100, // kg CO2e per month per person for AC usage (estimate for tropical/subtropical APAC)
+                    home_type_factor: { // Additional emissions based on home type (larger homes often mean more energy)
+                        apartment: 0, // Baseline
+                        townhouse: 200,
+                        detached: 500,
+                        none: 0 // Added for 'none' option
+                    },
+                    insulation_factor: { // Impact of insulation
+                        poor: 300,
+                        average: 100,
+                        good: 0,
+                        none: 0 // Added for 'none' option
+                    },
+                    renewable_energy_saving: -500, // Savings for using renewables
+
+                    // Transportation (per year)
+                    car_petrol_per_km: 0.23, // kg CO2e per km
+                    car_diesel_per_km: 0.26,
+                    car_hybrid_per_km: 0.10,
+                    car_electric_per_km: 0.02, // Assumes some grid emissions
+                    motorcycle_per_km: 0.15, // kg CO2e per km (often less efficient than cars per passenger)
+                    public_bus_per_km: 0.08, // Higher than train, lower than car
+                    public_train_metro_per_km: 0.03, // Very efficient
+                    walk_bike_savings: -50, // Small saving for active commute
+                    work_from_home_savings: -100, // Savings from not commuting
+                    flight_short_haul_km: 500, // Average short haul distance in km
+                    flight_medium_haul_km: 2500, // Average medium haul distance in km
+                    flight_long_haul_km: 8000, // Average long haul distance in km
+                    flight_per_km_factor: 0.15, // kg CO2e per passenger-km (economy)
+                    flight_class_multiplier: {
+                        economy: 1,
+                        business: 1.5, // Business class has higher per-passenger emissions
+                        first: 2.5, // First class has significantly higher per-passenger emissions
+                        none: 1 // Default to economy if not selected
+                    },
+                    petrol_l_to_kgco2: 2.31, // kg CO2 per liter of petrol (approx)
+                    diesel_l_to_kgco2: 2.68, // kg CO2 per liter of diesel (approx)
+
+
+                    // Diet (per year)
+                    diet: {
+                        high_meat: 1800, // Reduced slightly, considering more poultry/fish in APAC
+                        medium_meat: 1300,
+                        low_meat: 1000,
+                        vegetarian: 700,
+                        vegan: 400,
+                        none: 0 // Added for 'none' option (though radio buttons are usually pre-selected)
+                    },
+                    dairy_factor: {
+                        daily: 300,
+                        few_times_week: 150,
+                        rarely_never: 50,
+                        none: 0 // Added for 'none' option
+                    },
+                    food_waste: {
+                        very_little: 40,
+                        some: 150,
+                        a_lot: 400,
+                        none: 0 // Added for 'none' option
+                    },
+                    food_origin_impact: {
+                        always: -50, // Savings for local food
+                        sometimes: 20,
+                        rarely: 100, // Penalty for imported/non-seasonal
+                        none: 0 // Added for 'none' option
+                    },
+                    restaurant_impact: {
+                        daily: 400,
+                        few_times_week: 250,
+                        weekly: 150,
+                        monthly: 50,
+                        rarely: 10,
+                        none: 0 // Added for 'none' option
+                    },
+
+                    // Waste & Consumption (per year)
+                    recycling_savings: {
+                        excellent: -120,
+                        good: -60,
+                        poor: 150, // Penalty for poor recycling
+                        none: 0 // Added for 'none' option
+                    },
+                    composting_reduction: -100,
+                    single_use_plastics_impact: {
+                        frequently: 200,
+                        moderately: 100,
+                        rarely: 30,
+                        none: 0 // Added for 'none' option
+                    },
+                    e_waste_impact: {
+                        yearly: 150,
+                        every_few_years: 50,
+                        rarely_never: 10,
+                        none: 0 // Added for 'none' option
+                    },
+                    clothing_disposal_impact: {
+                        frequently: 100,
+                        moderately: 50,
+                        rarely: 10,
+                        none: 0 // Added for 'none' option
+                    },
+                    shopping_impact: {
+                        frequently: 350,
+                        moderately: 180,
+                        rarely: 40,
+                        none: 0 // Added for 'none' option
+                    },
+                    secondhand_savings: -80,
+                    electronics_impact: {
+                        frequently: 250,
+                        moderately: 100,
+                        rarely: 20,
+                        none: 0 // Added for 'none' option
+                    },
+                    pet_impact: {
+                        small_pet: 50,
+                        medium_pet: 300,
+                        large_pet: 800,
+                        none: 0 // Added for 'none' option
+                    },
+                    digital_footprint_impact: {
+                        low: 20,
+                        medium: 80,
+                        high: 150,
+                        none: 0 // Added for 'none' option
+                    }
+                };
+
+                // Ensure numerical inputs are parsed correctly with fallbacks
+                const householdSize = parseInt(data.household_size) || 1; 
+                const electricityKwh = parseFloat(data.electricity_kwh) || 0;
+                const waterBill = parseFloat(data.water_bill) || 0;
+                const acUsageMonths = parseInt(data.ac_usage_months) || 0;
+                const carKmWeek = parseFloat(data.car_km_week) || 0;
+                const carEfficiency = parseFloat(data.car_efficiency_l_100km) || 0; // Fallback to 0 if not a number
+                const motorcycleKmWeek = parseFloat(data.motorcycle_km_week) || 0;
+                
+                // Debugging specific NaN issue for publicTransportKmWeek
+                console.log("Debug: raw data.public_transport_km_week:", data.public_transport_km_week);
+                const publicTransportKmWeek = parseFloat(data.public_transport_km_week) || 0;
+                console.log("Debug: parsed publicTransportKmWeek:", publicTransportKmWeek);
+
+                const commuteDistance = parseFloat(data.commute_distance_km_day) || 0;
+
+
+                try {
+                    // 1. Home Energy
+                    console.log("Debug: totalCarbonFootprint BEFORE Electricity:", totalCarbonFootprint);
+                    console.log("Debug: electricityKwh:", electricityKwh, "factors.electricity_kwh_factor:", factors.electricity_kwh_factor, "householdSize:", householdSize);
+                    let electricityEmissions = (electricityKwh * factors.electricity_kwh_factor * 12) / householdSize;
+                    if (isNaN(electricityEmissions)) {
+                        console.warn("Corrected NaN in calculation for Electricity. Setting value to 0.");
+                        electricityEmissions = 0;
+                    }
+                    console.log("Debug: electricityEmissions (calculated):", electricityEmissions);
+                    breakdown.electricity = electricityEmissions;
+                    totalCarbonFootprint += electricityEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Electricity calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Water:", totalCarbonFootprint);
+                    console.log("Debug: waterBill:", waterBill, "factors.water_bill_factor:", factors.water_bill_factor, "householdSize:", householdSize);
+                    let waterEmissions = (waterBill * factors.water_bill_factor * 12) / householdSize;
+                    if (isNaN(waterEmissions)) {
+                        console.warn("Corrected NaN in calculation for Water. Setting value to 0.");
+                        waterEmissions = 0;
+                    }
+                    console.log("Debug: waterEmissions (calculated):", waterEmissions);
+                    breakdown.water = waterEmissions;
+                    totalCarbonFootprint += waterEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Water calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Heating/Cooling:", totalCarbonFootprint);
+                    const heatingCoolingSource = data.heating_cooling_source || 'none';
+                    console.log("Debug: heatingCoolingSource:", heatingCoolingSource, "factors.heating_cooling[heatingCoolingSource]:", factors.heating_cooling[heatingCoolingSource], "acUsageMonths:", acUsageMonths, "factors.ac_per_month_per_person:", factors.ac_per_month_per_person, "householdSize:", householdSize);
+                    let heatingCoolingEmissions = factors.heating_cooling[heatingCoolingSource] || 0;
+                    heatingCoolingEmissions += (acUsageMonths * factors.ac_per_month_per_person * householdSize);
+                    if (isNaN(heatingCoolingEmissions)) {
+                        console.warn("Corrected NaN in calculation for Heating/Cooling. Setting value to 0.");
+                        heatingCoolingEmissions = 0;
+                    }
+                    console.log("Debug: heatingCoolingEmissions (calculated):", heatingCoolingEmissions);
+                    breakdown.heatingCooling = heatingCoolingEmissions;
+                    totalCarbonFootprint += heatingCoolingEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Heating/Cooling calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Home Type:", totalCarbonFootprint);
+                    const homeType = data.home_type || 'none'; // Default to 'none' if not selected
+                    console.log("Debug: homeType:", homeType, "factors.home_type_factor[homeType]:", factors.home_type_factor[homeType], "householdSize:", householdSize);
+                    let homeTypeEmissions = (factors.home_type_factor[homeType] || 0) / householdSize; // Per capita impact
+                    if (isNaN(homeTypeEmissions)) {
+                        console.warn("Corrected NaN in calculation for Home Type. Setting value to 0.");
+                        homeTypeEmissions = 0;
+                    }
+                    breakdown.homeType = homeTypeEmissions;
+                    console.log("Debug: breakdown.homeType (calculated):", breakdown.homeType);
+                    totalCarbonFootprint += breakdown.homeType;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Home Type calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Insulation:", totalCarbonFootprint);
+                    const insulationQuality = data.insulation_quality || 'none'; // Default to 'none' if not selected
+                    console.log("Debug: insulationQuality:", insulationQuality, "factors.insulation_factor[insulationQuality]:", factors.insulation_factor[insulationQuality], "householdSize:", householdSize);
+                    let insulationEmissions = (factors.insulation_factor[insulationQuality] || 0) / householdSize; // Per capita impact
+                    if (isNaN(insulationEmissions)) {
+                        console.warn("Corrected NaN in calculation for Insulation. Setting value to 0.");
+                        insulationEmissions = 0;
+                    }
+                    breakdown.insulation = insulationEmissions;
+                    console.log("Debug: breakdown.insulation (calculated):", breakdown.insulation);
+                    totalCarbonFootprint += breakdown.insulation;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Insulation calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Renewable Energy:", totalCarbonFootprint);
+                    console.log("Debug: data.renewable_energy_source:", data.renewable_energy_source, "factors.renewable_energy_saving:", factors.renewable_energy_saving, "householdSize:", householdSize);
+                    let renewableEnergySavings = 0;
+                    if (data.renewable_energy_source === 'yes') {
+                        renewableEnergySavings = (factors.renewable_energy_saving || 0) / householdSize; // Per capita saving
+                        if (isNaN(renewableEnergySavings)) {
+                            console.warn("Corrected NaN in calculation for Renewable Energy. Setting value to 0.");
+                            renewableEnergySavings = 0;
+                        }
+                    }
+                    breakdown.renewableEnergy = renewableEnergySavings;
+                    console.log("Debug: breakdown.renewableEnergy (calculated):", breakdown.renewableEnergy);
+                    totalCarbonFootprint += breakdown.renewableEnergy;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Renewable Energy calculation!");
+
+
+                    // 2. Transportation
+                    console.log("Debug: totalCarbonFootprint BEFORE Car:", totalCarbonFootprint);
+                    console.log("Debug: data.car_fuel_type:", data.car_fuel_type, "carKmWeek:", carKmWeek, "carEfficiency:", carEfficiency);
+                    let carEmissions = 0;
+                    if (data.car_fuel_type !== 'no_car' && carKmWeek > 0) {
+                        if (carEfficiency > 0) { // Use specific efficiency if provided and valid for petrol/diesel
+                            if (data.car_fuel_type === 'petrol') {
+                                carEmissions = (carKmWeek / 100) * carEfficiency * (factors.petrol_l_to_kgco2 || 0) * 52;
+                            } else if (data.car_fuel_type === 'diesel') {
+                                carEmissions = (carKmWeek / 100) * carEfficiency * (factors.diesel_l_to_kgco2 || 0) * 52;
+                            } else {
+                                // Fallback for hybrid/electric if efficiency is given but not petrol/diesel
+                                if (data.car_fuel_type === 'hybrid') carEmissions = carKmWeek * (factors.car_hybrid_per_km || 0) * 52;
+                                else if (data.car_fuel_type === 'electric') carEmissions = carKmWeek * (factors.car_electric_per_km || 0) * 52;
+                            }
+                        } else {
+                            // Fallback to general per_km factors if no specific efficiency or invalid
+                            if (data.car_fuel_type === 'petrol') carEmissions = carKmWeek * (factors.car_petrol_per_km || 0) * 52;
+                            else if (data.car_fuel_type === 'diesel') carEmissions = carKmWeek * (factors.car_diesel_per_km || 0) * 52;
+                            else if (data.car_fuel_type === 'hybrid') carEmissions = carKmWeek * (factors.car_hybrid_per_km || 0) * 52;
+                            else if (data.car_fuel_type === 'electric') carEmissions = carKmWeek * (factors.car_electric_per_km || 0) * 52;
+                        }
+                    }
+                    if (isNaN(carEmissions)) {
+                        console.warn("Corrected NaN in calculation for Car. Setting value to 0.");
+                        carEmissions = 0;
+                    }
+                    console.log("Debug: carEmissions (calculated):", carEmissions);
+                    breakdown.car = carEmissions;
+                    totalCarbonFootprint += carEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Car calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Motorcycle:", totalCarbonFootprint);
+                    console.log("Debug: motorcycleKmWeek:", motorcycleKmWeek, "factors.motorcycle_per_km:", factors.motorcycle_per_km);
+                    let motorcycleEmissions = motorcycleKmWeek * (factors.motorcycle_per_km || 0) * 52;
+                    if (isNaN(motorcycleEmissions)) {
+                        console.warn("Corrected NaN in calculation for Motorcycle. Setting value to 0.");
+                        motorcycleEmissions = 0;
+                    }
+                    console.log("Debug: motorcycleEmissions (calculated):", motorcycleEmissions);
+                    breakdown.motorcycle = motorcycleEmissions;
+                    totalCarbonFootprint += motorcycleEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Motorcycle calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Public Transport:", totalCarbonFootprint);
+                    console.log("Debug: publicTransportKmWeek:", publicTransportKmWeek, "factors.public_transport_per_km:", factors.public_transport_per_km);
+                    let publicTransportEmissions = publicTransportKmWeek * (factors.public_transport_per_km || 0) * 52;
+                    if (isNaN(publicTransportEmissions)) {
+                        console.warn("Corrected NaN in calculation for Public Transport. Setting value to 0.");
+                        publicTransportEmissions = 0;
+                    }
+                    console.log("Debug: publicTransportEmissions (calculated):", publicTransportEmissions);
+                    breakdown.publicTransport = publicTransportEmissions;
+                    totalCarbonFootprint += publicTransportEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Public Transport calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Commute:", totalCarbonFootprint);
+                    const commuteMode = data.commute_mode || 'none';
+                    console.log("Debug: commuteMode:", commuteMode, "commuteDistance:", commuteDistance, "householdSize:", householdSize);
+                    let commuteEmissions = 0;
+
+                    if (commuteMode === 'walk_bike') {
+                        commuteEmissions = factors.walk_bike_savings || 0;
+                    } else if (commuteMode === 'work_from_home') {
+                        commuteEmissions = factors.work_from_home_savings || 0;
+                    } else if (commuteDistance > 0) { // Only calculate distance-based if not walk/bike/WFH
+                        if (commuteMode === 'car') {
+                            let commuteCarFactor = 0;
+                            // Use the selected car's fuel type for commute if it's a car
+                            console.log("Debug: Car commute - data.car_fuel_type:", data.car_fuel_type, "factors.car_petrol_per_km:", factors.car_petrol_per_km);
+                            if (data.car_fuel_type === 'petrol') commuteCarFactor = factors.car_petrol_per_km || 0;
+                            else if (data.car_fuel_type === 'diesel') commuteCarFactor = factors.car_diesel_per_km || 0;
+                            else if (data.car_fuel_type === 'hybrid') commuteCarFactor = factors.car_hybrid_per_km || 0;
+                            else if (data.car_fuel_type === 'electric') commuteCarFactor = factors.car_electric_per_km || 0;
+                            commuteEmissions = (commuteDistance * commuteCarFactor * 2 * 5 * 52) / householdSize;
+                        } else if (commuteMode === 'motorcycle') {
+                            commuteEmissions = (commuteDistance * (factors.motorcycle_per_km || 0) * 2 * 5 * 52) / householdSize;
+                        } else if (commuteMode === 'public_bus') {
+                            commuteEmissions = (commuteDistance * (factors.public_bus_per_km || 0) * 2 * 5 * 52) / householdSize;
+                        } else if (commuteMode === 'public_train_metro') {
+                            commuteEmissions = (commuteDistance * (factors.public_train_metro_per_km || 0) * 2 * 5 * 52) / householdSize;
+                        }
+                    }
+                    if (isNaN(commuteEmissions)) {
+                        console.warn("Corrected NaN in calculation for Commute. Setting value to 0.");
+                        commuteEmissions = 0;
+                    }
+                    console.log("Debug: commuteEmissions (calculated):", commuteEmissions);
+                    breakdown.commute = commuteEmissions;
+                    totalCarbonFootprint += commuteEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Commute calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Flights:", totalCarbonFootprint);
+                    let flightEmissions = 0;
+                    let baseFlightKm = 0;
+                    console.log("Debug: data.flights_annual:", data.flights_annual, "factors.flight_short_haul_km:", factors.flight_short_haul_km, "factors.flight_medium_haul_km:", factors.flight_medium_haul_km, "factors.flight_long_haul_km:", factors.flight_long_haul_km);
+                    if (data.flights_annual === '1-2_short') baseFlightKm = ((factors.flight_short_haul_km || 0) * 1.5);
+                    else if (data.flights_annual === '3-5_short_1-2_medium') baseFlightKm = ((factors.flight_short_haul_km || 0) * 3 + (factors.flight_medium_haul_km || 0) * 1.5);
+                    else if (data.flights_annual === '6+_short_3+_medium_1+_long') baseFlightKm = ((factors.flight_short_haul_km || 0) * 6 + (factors.flight_medium_haul_km || 0) * 3 + (factors.flight_long_haul_km || 0) * 1);
+
+                    const flightClassMultiplier = factors.flight_class_multiplier[data.flight_class || 'economy'] || 1; // Default to 'economy' and 1
+                    console.log("Debug: baseFlightKm:", baseFlightKm, "factors.flight_per_km_factor:", factors.flight_per_km_factor, "data.flight_class:", data.flight_class, "flightClassMultiplier:", flightClassMultiplier);
+                    flightEmissions = baseFlightKm * (factors.flight_per_km_factor || 0) * flightClassMultiplier;
+                    if (isNaN(flightEmissions)) {
+                        console.warn("Corrected NaN in calculation for Flights. Setting value to 0.");
+                        flightEmissions = 0;
+                    }
+                    console.log("Debug: flightEmissions (calculated):", flightEmissions);
+                    breakdown.flights = flightEmissions;
+                    totalCarbonFootprint += flightEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Flights calculation!");
+
+
+                    // 3. Diet & Food
+                    console.log("Debug: totalCarbonFootprint BEFORE Diet:", totalCarbonFootprint);
+                    const dietType = data.diet_type || 'none'; // Default to 'none'
+                    console.log("Debug: dietType:", dietType, "factors.diet[dietType]:", factors.diet[dietType]);
+                    let dietEmissions = factors.diet[dietType] || 0;
+                    if (isNaN(dietEmissions)) {
+                        console.warn("Corrected NaN in calculation for Diet. Setting value to 0.");
+                        dietEmissions = 0;
+                    }
+                    console.log("Debug: dietEmissions (calculated):", dietEmissions);
+                    breakdown.diet = dietEmissions;
+                    totalCarbonFootprint += dietEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Diet calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Dairy:", totalCarbonFootprint);
+                    const dairyConsumption = data.dairy_consumption || 'none'; // Default to 'none'
+                    console.log("Debug: dairyConsumption:", dairyConsumption, "factors.dairy_factor[dairyConsumption]:", factors.dairy_factor[dairyConsumption]);
+                    let dairyEmissions = factors.dairy_factor[dairyConsumption] || 0;
+                    if (isNaN(dairyEmissions)) {
+                        console.warn("Corrected NaN in calculation for Dairy. Setting value to 0.");
+                        dairyEmissions = 0;
+                    }
+                    console.log("Debug: dairyEmissions (calculated):", dairyEmissions);
+                    breakdown.dairy = dairyEmissions;
+                    totalCarbonFootprint += dairyEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Dairy calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Food Waste:", totalCarbonFootprint);
+                    const foodWasteLevel = data.food_waste_level || 'none'; // Default to 'none'
+                    console.log("Debug: foodWasteLevel:", foodWasteLevel, "factors.food_waste[foodWasteLevel]:", factors.food_waste[foodWasteLevel]);
+                    let foodWasteEmissions = factors.food_waste[foodWasteLevel] || 0;
+                    if (isNaN(foodWasteEmissions)) {
+                        console.warn("Corrected NaN in calculation for Food Waste. Setting value to 0.");
+                        foodWasteEmissions = 0;
+                    }
+                    console.log("Debug: foodWasteEmissions (calculated):", foodWasteEmissions);
+                    breakdown.foodWaste = foodWasteEmissions;
+                    totalCarbonFootprint += foodWasteEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Food Waste calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Food Origin:", totalCarbonFootprint);
+                    const foodOriginPreference = data.food_origin_preference || 'none'; // Default to 'none'
+                    console.log("Debug: foodOriginPreference:", foodOriginPreference, "factors.food_origin_impact[foodOriginPreference]:", factors.food_origin_impact[foodOriginPreference]);
+                    let foodOriginEmissions = factors.food_origin_impact[foodOriginPreference] || 0;
+                    if (isNaN(foodOriginEmissions)) {
+                        console.warn("Corrected NaN in calculation for Food Origin. Setting value to 0.");
+                        foodOriginEmissions = 0;
+                    }
+                    console.log("Debug: foodOriginEmissions (calculated):", foodOriginEmissions);
+                    breakdown.foodOrigin = foodOriginEmissions;
+                    totalCarbonFootprint += foodOriginEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Food Origin calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Restaurant:", totalCarbonFootprint);
+                    const restaurantFrequency = data.restaurant_frequency || 'none'; // Default to 'none'
+                    console.log("Debug: restaurantFrequency:", restaurantFrequency, "factors.restaurant_impact[restaurantFrequency]:", factors.restaurant_impact[restaurantFrequency]);
+                    let restaurantEmissions = factors.restaurant_impact[restaurantFrequency] || 0;
+                    if (isNaN(restaurantEmissions)) {
+                        console.warn("Corrected NaN in calculation for Restaurant. Setting value to 0.");
+                        restaurantEmissions = 0;
+                    }
+                    console.log("Debug: restaurantEmissions (calculated):", restaurantEmissions);
+                    breakdown.restaurant = restaurantEmissions;
+                    totalCarbonFootprint += restaurantEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Restaurant calculation!");
+
+
+                    // 4. Waste & Recycling
+                    console.log("Debug: totalCarbonFootprint BEFORE Recycling:", totalCarbonFootprint);
+                    const recyclingHabits = data.recycling_habits || 'none'; // Default to 'none'
+                    console.log("Debug: recyclingHabits:", recyclingHabits, "factors.recycling_savings[recyclingHabits]:", factors.recycling_savings[recyclingHabits]);
+                    let recyclingEmissions = factors.recycling_savings[recyclingHabits] || 0;
+                    if (isNaN(recyclingEmissions)) {
+                        console.warn("Corrected NaN in calculation for Recycling. Setting value to 0.");
+                        recyclingEmissions = 0;
+                    }
+                    console.log("Debug: recyclingEmissions (calculated):", recyclingEmissions);
+                    breakdown.recycling = recyclingEmissions;
+                    totalCarbonFootprint += recyclingEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Recycling calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Composting:", totalCarbonFootprint);
+                    console.log("Debug: data.composting_status:", data.composting_status, "factors.composting_reduction:", factors.composting_reduction);
+                    let compostingReduction = 0;
+                    if (data.composting_status === 'yes') {
+                        compostingReduction = factors.composting_reduction || 0;
+                        if (isNaN(compostingReduction)) {
+                            console.warn("Corrected NaN in calculation for Composting. Setting value to 0.");
+                            compostingReduction = 0;
+                        }
+                    }
+                    breakdown.composting = compostingReduction;
+                    console.log("Debug: breakdown.composting (calculated):", breakdown.composting);
+                    totalCarbonFootprint += breakdown.composting;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Composting calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Single Use Plastics:", totalCarbonFootprint);
+                    const singleUsePlastics = data.single_use_plastics || 'none'; // Default to 'none'
+                    console.log("Debug: singleUsePlastics:", singleUsePlastics, "factors.single_use_plastics_impact[singleUsePlastics]:", factors.single_use_plastics_impact[singleUsePlastics]);
+                    let plasticEmissions = factors.single_use_plastics_impact[singleUsePlastics] || 0;
+                    if (isNaN(plasticEmissions)) {
+                        console.warn("Corrected NaN in calculation for Single Use Plastics. Setting value to 0.");
+                        plasticEmissions = 0;
+                    }
+                    console.log("Debug: plasticEmissions (calculated):", plasticEmissions);
+                    breakdown.singleUsePlastics = plasticEmissions;
+                    totalCarbonFootprint += plasticEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Single Use Plastics calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE E-Waste:", totalCarbonFootprint);
+                    const eWasteDisposalFrequency = data.e_waste_disposal_frequency || 'none'; // Default to 'none'
+                    console.log("Debug: eWasteDisposalFrequency:", eWasteDisposalFrequency, "factors.e_waste_impact[eWasteDisposalFrequency]:", factors.e_waste_impact[eWasteDisposalFrequency]);
+                    let eWasteEmissions = factors.e_waste_impact[eWasteDisposalFrequency] || 0;
+                    if (isNaN(eWasteEmissions)) {
+                        console.warn("Corrected NaN in calculation for E-Waste. Setting value to 0.");
+                        eWasteEmissions = 0;
+                    }
+                    console.log("Debug: eWasteEmissions (calculated):", eWasteEmissions);
+                    breakdown.eWaste = eWasteEmissions;
+                    totalCarbonFootprint += eWasteEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after E-Waste calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Clothing Disposal:", totalCarbonFootprint);
+                    const clothingDisposalFrequency = data.clothing_disposal_frequency || 'none'; // Default to 'none'
+                    console.log("Debug: clothingDisposalFrequency:", clothingDisposalFrequency, "factors.clothing_disposal_impact[clothingDisposalFrequency]:", factors.clothing_disposal_impact[clothingDisposalFrequency]);
+                    let clothingDisposalEmissions = factors.clothing_disposal_impact[clothingDisposalFrequency] || 0;
+                    if (isNaN(clothingDisposalEmissions)) {
+                        console.warn("Corrected NaN in calculation for Clothing Disposal. Setting value to 0.");
+                        clothingDisposalEmissions = 0;
+                    }
+                    console.log("Debug: clothingDisposalEmissions (calculated):", clothingDisposalEmissions);
+                    breakdown.clothingDisposal = clothingDisposalEmissions;
+                    totalCarbonFootprint += clothingDisposalEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Clothing Disposal calculation!");
+
+
+                    // 5. Shopping & Consumption
+                    console.log("Debug: totalCarbonFootprint BEFORE Shopping:", totalCarbonFootprint);
+                    const shoppingFrequency = data.shopping_frequency || 'none'; // Default to 'none'
+                    console.log("Debug: shoppingFrequency:", shoppingFrequency, "factors.shopping_impact[shoppingFrequency]:", factors.shopping_impact[shoppingFrequency]);
+                    let shoppingEmissions = factors.shopping_impact[shoppingFrequency] || 0;
+                    if (isNaN(shoppingEmissions)) {
+                        console.warn("Corrected NaN in calculation for Shopping. Setting value to 0.");
+                        shoppingEmissions = 0;
+                    }
+                    console.log("Debug: shoppingEmissions (calculated):", shoppingEmissions);
+                    breakdown.shopping = shoppingEmissions;
+                    totalCarbonFootprint += shoppingEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Shopping calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Secondhand:", totalCarbonFootprint);
+                    console.log("Debug: data.secondhand_use:", data.secondhand_use, "factors.secondhand_savings:", factors.secondhand_savings);
+                    let secondhandSavings = 0;
+                    if (data.secondhand_use === 'yes') {
+                        secondhandSavings = factors.secondhand_savings || 0;
+                        if (isNaN(secondhandSavings)) {
+                            console.warn("Corrected NaN in calculation for Secondhand. Setting value to 0.");
+                            secondhandSavings = 0;
+                        }
+                    }
+                    breakdown.secondhand = secondhandSavings;
+                    console.log("Debug: breakdown.secondhand (calculated):", breakdown.secondhand);
+                    totalCarbonFootprint += breakdown.secondhand;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Secondhand calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Electronics:", totalCarbonFootprint);
+                    const electronicsPurchases = data.electronics_purchases || 'none'; // Default to 'none'
+                    console.log("Debug: electronicsPurchases:", electronicsPurchases, "factors.electronics_impact[electronicsPurchases]:", factors.electronics_impact[electronicsPurchases]);
+                    let electronicsEmissions = factors.electronics_impact[electronicsPurchases] || 0;
+                    if (isNaN(electronicsEmissions)) {
+                        console.warn("Corrected NaN in calculation for Electronics. Setting value to 0.");
+                        electronicsEmissions = 0;
+                    }
+                    console.log("Debug: electronicsEmissions (calculated):", electronicsEmissions);
+                    breakdown.electronics = electronicsEmissions;
+                    totalCarbonFootprint += electronicsEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Electronics calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Pets:", totalCarbonFootprint);
+                    console.log("Debug: data.pet_ownership:", data.pet_ownership, "data.pet_type:", data.pet_type, "factors.pet_impact[data.pet_type]:", factors.pet_impact[data.pet_type]);
+                    let petImpact = 0;
+                    if (data.pet_ownership === 'yes' && data.pet_type !== 'none') {
+                        petImpact = factors.pet_impact[data.pet_type] || 0;
+                        if (isNaN(petImpact)) {
+                            console.warn("Corrected NaN in calculation for Pets. Setting value to 0.");
+                            petImpact = 0;
+                        }
+                    }
+                    breakdown.pets = petImpact;
+                    console.log("Debug: breakdown.pets (calculated):", breakdown.pets);
+                    totalCarbonFootprint += breakdown.pets;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Pets calculation!");
+
+
+                    console.log("Debug: totalCarbonFootprint BEFORE Digital Footprint:", totalCarbonFootprint);
+                    const digitalFootprintLevel = data.digital_footprint_level || 'none'; // Default to 'none'
+                    console.log("Debug: digitalFootprintLevel:", digitalFootprintLevel, "factors.digital_footprint_impact[digitalFootprintLevel]:", factors.digital_footprint_impact[digitalFootprintLevel]);
+                    let digitalFootprintEmissions = factors.digital_footprint_impact[digitalFootprintLevel] || 0;
+                    if (isNaN(digitalFootprintEmissions)) {
+                        console.warn("Corrected NaN in calculation for Digital Footprint. Setting value to 0.");
+                        digitalFootprintEmissions = 0;
+                    }
+                    console.log("Debug: digitalFootprintEmissions (calculated):", digitalFootprintEmissions);
+                    breakdown.digitalFootprint = digitalFootprintEmissions;
+                    totalCarbonFootprint += digitalFootprintEmissions;
+                    if (isNaN(totalCarbonFootprint)) console.error("NaN detected after Digital Footprint calculation!");
+
+                } catch (error) {
+                    console.error("An error occurred during carbon footprint calculation:", error);
+                    totalCarbonFootprint = NaN; // Force NaN if any error occurs
+                }
+
+
+                // --- Final Debugging logs ---
+                console.log("Calculated Total Carbon Footprint (kg CO2e):", totalCarbonFootprint);
+                console.log("Breakdown:", breakdown);
+                // --- End Final Debugging logs ---
+
+
+                // Store results in sessionStorage for current view
+                sessionStorage.setItem('carbonFootprintData', JSON.stringify({
+                    totalCarbonFootprint: totalCarbonFootprint,
+                    breakdown: breakdown,
+                    userData: data,
+                    timestamp: new Date().toISOString() // Add timestamp for history
+                }));
+
+                // Save to historical data for the logged-in user
+                const loggedInUser = sessionStorage.getItem('loggedInUser');
+                if (loggedInUser) {
+                    let history = JSON.parse(localStorage.getItem(`ecotraceHistory_${loggedInUser}`)) || [];
+                    history.push({
+                        date: new Date().toLocaleDateString(),
+                        footprint: totalCarbonFootprint / 1000 // Store in tonnes
+                    });
+                    localStorage.setItem(`ecotraceHistory_${loggedInUser}`, JSON.stringify(history));
+                }
+
+                // Populate results section
+                populateResults(totalCarbonFootprint, breakdown, data);
+                showSection('results-section'); // Navigate to results section
+            });
+
+            // --- Populate Results Section ---
+            function populateResults(totalCarbonFootprint, breakdown, userData) {
+                // --- Debugging logs ---
+                console.log("Populate Results - totalCarbonFootprint (raw):", totalCarbonFootprint);
+                console.log("Debug: totalFootprintSpan element:", totalFootprintSpan);
+                // --- End Debugging logs ---
+
+                // Ensure totalCarbonFootprint is a valid number before converting
+                const totalTonnes = isNaN(totalCarbonFootprint) ? 'N/A' : (totalCarbonFootprint / 1000).toFixed(2);
+                console.log("Debug: totalTonnes for display:", totalTonnes);
+
+                if (totalFootprintSpan) {
+                    totalFootprintSpan.textContent = totalTonnes;
+                } else {
+                    console.error("Error: totalFootprintSpan element not found!");
+                }
+
+
+                const asiaPacificAverageFootprint = 7.19; // tonnes CO2e
+                // Only compare if totalTonnes is a valid number
+                if (!isNaN(totalCarbonFootprint) && parseFloat(totalTonnes) > asiaPacificAverageFootprint) {
+                    footprintWarning.classList.remove('hidden');
+                } else {
+                    footprintWarning.classList.add('hidden');
+                }
+
+                breakdownList.innerHTML = '';
+                // Sort breakdown by value (descending) for better readability
+                const sortedBreakdown = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
+
+                sortedBreakdown.forEach(([category, value]) => {
+                    // Only display if value is a valid number and not zero
+                    if (value !== 0 && !isNaN(value)) {
+                        const li = document.createElement('li');
+                        // Format category name for display
+                        const formattedCategory = category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                        li.textContent = `${formattedCategory}: ${(value / 1000).toFixed(2)} tonnes CO2e`;
+                        breakdownList.appendChild(li);
+                    }
+                });
+
+                // Render charts only if breakdownData is valid
+                if (!isNaN(totalCarbonFootprint)) {
+                    renderBreakdownChart(breakdown);
+                    renderHistoryChart();
+                } else {
+                    console.warn("Charts not rendered due to NaN in totalCarbonFootprint.");
+                }
+
+                // Pass totalCarbonFootprint (which is currentFootprintKg) to generateTips
+                generateTips(userData, totalCarbonFootprint);
+            }
+
+            // --- Charting with Chart.js ---
+            function renderBreakdownChart(breakdownData) {
+                if (breakdownChartInstance) {
+                    breakdownChartInstance.destroy();
+                }
+                const ctx = document.getElementById('breakdownChart').getContext('2d');
+                const labels = Object.keys(breakdownData).map(key => key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'));
+                // Filter out NaN values before mapping to fixed decimal
+                const dataValues = Object.values(breakdownData).filter(value => !isNaN(value)).map(value => (value / 1000).toFixed(2)); 
+                const filteredLabels = Object.keys(breakdownData).filter(key => !isNaN(breakdownData[key])).map(key => key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'));
+
+
+                breakdownChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: filteredLabels, // Use filtered labels
+                        datasets: [{
+                            label: 'CO2e Emissions (tonnes)',
+                            data: dataValues,
+                            backgroundColor: [
+                                '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107',
+                                '#FF9800', '#FF5722', '#F44336', '#E91E63', '#9C27B0',
+                                '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
+                                '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B',
+                                '#FFC107', '#FF9800', '#FF5722'
+                            ],
+                            borderColor: [
+                                '#388E3C', '#689F38', '#AFB42B', '#FBC02D', '#FFA000',
+                                '#F57C00', '#E64A19', '#D32F2F', '#C2185B', '#7B1FA2',
+                                '#512DA8', '#303F9F', '#1976D2', '#0288D1', '#0097A7',
+                                '#00796B', '#388E3C', '#689F38', '#AFB42B', '#FBC02D',
+                                '#FFA000', '#F57C00', '#E64A19'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false // Hide legend for breakdown chart
+                            },
+                            title: {
+                                display: true,
+                                text: 'Carbon Footprint Breakdown by Category (Tonnes CO2e)',
+                                font: { size: 16, family: 'Inter' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Tonnes CO2e',
+                                    font: { family: 'Inter' }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Category',
+                                    font: { family: 'Inter' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderHistoryChart() {
+                if (historyChartInstance) {
+                    historyChartInstance.destroy();
+                }
+
+                const loggedInUser = sessionStorage.getItem('loggedInUser');
+                const history = JSON.parse(localStorage.getItem(`ecotraceHistory_${loggedInUser}`)) || [];
+
+                const dates = history.map(record => record.date);
+                const footprints = history.map(record => record.footprint);
+
+                const ctx = document.getElementById('historyChart').getContext('2d');
+                historyChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Your Footprint (tonnes CO2e)',
+                            data: footprints,
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                            tension: 0.3,
+                            fill: true
+                        }, {
+                            label: 'APAC Average (tonnes CO2e)',
+                            data: Array(dates.length).fill(7.19), // APAC average line
+                            borderColor: '#FF9800',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: { family: 'Inter' }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Your Carbon Footprint History vs. APAC Average',
+                                font: { size: 16, family: 'Inter' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Tonnes CO2e',
+                                    font: { family: 'Inter' }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date',
+                                    font: { family: 'Inter' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            // --- Personalized Tips Generation (Enhanced) ---
+            function generateTips(userData, currentFootprintKg) {
+                tipsList.innerHTML = ''; // Clear previous tips
+
+                const tips = [];
+                const asiaPacificAverageFootprintKg = 7.19 * 1000; // Convert to kg for comparison
+
+                // General tips for higher footprints
+                if (!isNaN(currentFootprintKg)) { // Only add general tips if footprint is a valid number
+                    if (currentFootprintKg > asiaPacificAverageFootprintKg + 1000) {
+                        tips.push("<strong>High Footprint Alert!</strong> Your carbon footprint is notably higher than the Asia Pacific average. Focusing on key areas can lead to substantial reductions. Consider reviewing your largest emission categories in the breakdown chart.");
+                    } else if (currentFootprintKg > asiaPacificAverageFootprintKg) {
+                        tips.push("<strong>Room for Improvement:</strong> Your estimated carbon footprint is above the Asia Pacific average. Let's explore ways to bring it down and contribute to a greener region.");
+                    } else if (currentFootprintKg > asiaPacificAverageFootprintKg - 500) {
+                        tips.push("<strong>Good Effort:</strong> Your carbon footprint is close to or below the Asia Pacific average. Every small step helps in our collective journey towards sustainability!");
+                    } else {
+                        tips.push("<strong>Excellent!</strong> Your carbon footprint is commendably low for the Asia Pacific region. Keep up the great work and inspire your community!");
+                    }
+                } else {
+                    tips.push("<strong>Calculation Issue:</strong> Unable to provide specific tips due to an issue with calculating your carbon footprint. Please ensure all questionnaire fields are filled correctly with numbers where expected.");
+                }
+
+
+                // Home Energy Tips (adapted for APAC context - e.g., AC use, household size)
+                const electricityKwh = parseFloat(userData.electricity_kwh) || 0;
+                const acUsageMonths = parseInt(userData.ac_usage_months) || 0;
+                if (electricityKwh > 300 || acUsageMonths > 6) {
+                    tips.push("<strong>Energy Smart Home:</strong> In tropical/subtropical APAC, efficient AC use is crucial. Set AC to a comfortable but not excessively cold temperature (e.g., 25°C/77°F). Use fans, natural ventilation, and ensure proper insulation. Unplug electronics when not in use.");
+                } else if (userData.heating_cooling_source === 'wood') {
+                     tips.push("<strong>Sustainable Heating:</strong> If using wood/biomass for heating (common in some colder APAC regions), ensure it's from sustainably managed forests. Explore cleaner alternatives like heat pumps if available.");
+                }
+                if (parseFloat(userData.water_bill) > 50) {
+                    tips.push("<strong>Conserve Water:</strong> Water treatment and pumping are energy-intensive. Fix leaks, take shorter showers, and collect rainwater for gardening. In water-stressed APAC regions, every drop counts.");
+                }
+                if (userData.home_type === 'detached' || userData.insulation_quality === 'poor') {
+                    tips.push("<strong>Home Efficiency:</strong> Consider improving home insulation or sealing drafts to reduce energy loss, especially in larger homes. This can significantly reduce heating and cooling needs.");
+                }
+                if (userData.renewable_energy_source === 'no') {
+                    tips.push("<strong>Explore Renewables:</strong> Investigate options for solar panels or switching to a green energy provider if available in your area. Even small steps towards renewable energy make a difference.");
+                }
+
+
+                // Transportation Tips (adapted for APAC context - e.g., public transport, motorcycles)
+                const carKmWeek = parseFloat(userData.car_km_week) || 0;
+                const motorcycleKmWeek = parseFloat(userData.motorcycle_km_week) || 0;
+                const publicTransportKmWeek = parseFloat(userData.public_transport_km_week) || 0;
+                const commuteMode = userData.commute_mode;
+
+                if ((carKmWeek > 80 && userData.car_fuel_type !== 'electric' && userData.car_fuel_type !== 'hybrid') || motorcycleKmWeek > 50) {
+                    tips.push("<strong>Embrace Public Transport & Active Commute:</strong> Asia Pacific cities often have extensive public transport networks (buses, trains, metro). Utilize them more. For shorter distances, consider walking or cycling. If owning a vehicle, consider electric options next time.");
+                }
+                if (userData.flights_annual !== '0' && userData.flight_class !== 'economy') {
+                    tips.push("<strong>Mindful Travel:</strong> For regional travel, explore high-speed rail options where available. If flying, consider direct flights and look into reputable carbon offsetting programs. Opt for virtual meetings when possible. Choosing economy class significantly reduces your per-flight footprint.");
+                } else if (userData.flights_annual !== '0') {
+                    tips.push("<strong>Mindful Travel:</strong> For regional travel, explore high-speed rail options where available. If flying, consider direct flights and look into reputable carbon offsetting programs. Opt for virtual meetings when possible.");
+                }
+                if (carKmWeek === 0 && motorcycleKmWeek === 0 && publicTransportKmWeek === 0 && commuteMode !== 'walk_bike' && commuteMode !== 'work_from_home') {
+                    tips.push("<strong>Active & Green Commute:</strong> Your minimal reliance on motorized transport is fantastic! Continue to enjoy the benefits of walking, cycling, or using efficient public transport.");
+                }
+                if (commuteMode === 'car' || commuteMode === 'motorcycle') {
+                    tips.push("<strong>Rethink Your Commute:</strong> Even a few days of public transport, cycling, or walking instead of driving can significantly lower your commute emissions. Consider carpooling!");
+                }
+
+
+                // Diet & Food Tips (adapted for APAC context - e.g., local produce, traditional diets)
+                if (userData.diet_type === 'high_meat' || userData.diet_type === 'medium_meat') {
+                    tips.push("<strong>Local & Plant-Rich Diet:</strong> Many traditional Asia Pacific diets are inherently rich in vegetables, grains, and legumes. Incorporate more plant-based meals and prioritize locally sourced, seasonal produce to reduce food miles and support local farmers.");
+                }
+                if (userData.dairy_consumption === 'daily' || userData.dairy_consumption === 'few_times_week') {
+                    tips.push("<strong>Reduce Dairy Impact:</strong> Consider plant-based milk alternatives (soy, almond, oat) for some of your dairy consumption. Dairy production has a notable carbon footprint.");
+                }
+                if (userData.food_waste_level === 'a_lot' || userData.food_waste_level === 'some') {
+                    tips.push("<strong>Smart Food Management:</strong> Food waste is a major emitter. Plan meals, store food properly, and utilize leftovers. Explore traditional methods of food preservation common in APAC. Composting is a great option for unavoidable organic waste.");
+                }
+                if (userData.food_origin_preference === 'rarely' || userData.food_origin_preference === 'sometimes') {
+                    tips.push("<strong>Eat Local & Seasonal:</strong> Prioritizing local and seasonal produce reduces transportation emissions and supports your local economy. Visit farmers' markets!");
+                }
+                if (userData.restaurant_frequency === 'daily' || userData.restaurant_frequency === 'few_times_week') {
+                    tips.push("<strong>Cook More at Home:</strong> Eating out frequently often leads to higher emissions due to food sourcing, preparation, and increased waste. Cooking at home gives you more control over your food's footprint.");
+                }
+
+                // Waste & Recycling Tips (adapted for APAC context - e.g., plastic waste)
+                if (userData.recycling_habits === 'poor' || userData.single_use_plastics === 'frequently') {
+                    tips.push("<strong>Improve Waste Management:</strong> Asia Pacific faces significant challenges with plastic waste. Learn your local recycling guidelines and diligently separate recyclables. Carry reusable bags, water bottles, and coffee cups. Support local initiatives to reduce single-use plastics.");
+                }
+                if (userData.composting_status === 'no') {
+                    tips.push("<strong>Start Composting:</strong> Composting organic waste is crucial, especially in regions with high organic waste generation. It reduces landfill burden and creates valuable soil amendments for gardening.");
+                }
+                if (userData.e_waste_disposal_frequency === 'yearly') {
+                    tips.push("<strong>Responsible E-waste:</strong> Electronics have a high embodied carbon footprint. Extend their lifespan, repair them when possible, and always recycle e-waste through certified facilities.");
+                }
+                if (userData.clothing_disposal_frequency === 'frequently') {
+                    tips.push("<strong>Sustainable Fashion:</strong> Fast fashion has a huge environmental impact. Buy fewer clothes, choose durable items, repair them, and donate/resell instead of discarding.");
+                }
+
+                // Shopping & Consumption Tips (adapted for APAC context - e.g., local markets, durable goods)
+                if (userData.shopping_frequency === 'frequently' || userData.secondhand_use === 'no' || userData.electronics_purchases === 'frequently') {
+                    tips.push("<strong>Sustainable Shopping:</strong> Support local markets and artisans. Choose durable, repairable goods over disposable ones. Consider repairing items, borrowing, or buying secondhand to extend product lifecycles. For electronics, extend their lifespan and recycle responsibly.");
+                }
+                if (userData.pet_ownership === 'yes' && (userData.pet_type === 'medium_pet' || userData.pet_type === 'large_pet')) {
+                    tips.push("<strong>Pet's Paw Print:</strong> Pet food, especially meat-based, has a carbon footprint. Consider more sustainable pet food options or reducing meat in their diet if appropriate and healthy for your pet.");
+                }
+                if (userData.digital_footprint_level === 'high') {
+                    tips.push("<strong>Reduce Digital Footprint:</strong> Data centers consume a lot of energy. Optimize cloud storage, delete unnecessary files, and be mindful of continuous high-definition streaming. Download content instead of streaming repeatedly.");
+                }
+
+                if (tips.length === 0) {
+                    tips.push("You're already doing a fantastic job! Keep up the great work and continue to inspire others with your eco-friendly lifestyle.");
+                }
+
+                // Display tips
+                tips.forEach(tipText => {
+                    const div = document.createElement('div');
+                    div.classList.add('tip-card');
+                    div.innerHTML = `<p>${tipText}</p>`;
+                    tipsList.appendChild(div);
+                });
+            }
+
+            // --- Initial Load Logic ---
+            const loggedInUser = sessionStorage.getItem('loggedInUser');
+            const storedFootprintData = sessionStorage.getItem('carbonFootprintData');
+
+            // Determine which section to show on initial load based on authentication and data
+            let initialSectionToShow = 'auth-section';
+            if (loggedInUser) {
+                if (storedFootprintData) {
+                    // Parse stored data and ensure it's valid
+                    try {
+                        const { totalCarbonFootprint, breakdown, userData } = JSON.parse(storedFootprintData);
+                        // Only populate results if totalCarbonFootprint is a valid number
+                        if (!isNaN(totalCarbonFootprint)) {
+                            populateResults(totalCarbonFootprint, breakdown, userData);
+                            initialSectionToShow = 'results-section';
+                        } else {
+                            console.warn("Stored carbonFootprintData contains NaN, redirecting to questionnaire.");
+                            sessionStorage.removeItem('carbonFootprintData'); // Clear bad data
+                            initialSectionToShow = 'questionnaire-section';
+                        }
+                    }
+                    catch (e) {
+                        console.error("Error parsing stored footprint data:", e);
+                        sessionStorage.removeItem('carbonFootprintData'); // Clear bad data
+                        initialSectionToShow = 'questionnaire-section'; // Go to questionnaire
+                    }
+                } else {
+                    initialSectionToShow = 'questionnaire-section';
+                }
+            }
+            showSection(initialSectionToShow); // Show the determined section
+            if (initialSectionToShow === 'auth-section') {
+                showAuthSubForm('login-form'); // Ensure login form is shown if starting on auth
+            }
+            if (initialSectionToShow === 'questionnaire-section') {
+                updateProgressBar(); // Initialize progress bar if starting on questionnaire
+            }
+        });
+    </script>
+</body>
+</html>
