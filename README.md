@@ -1,4 +1,5 @@
-#EcoTrace: Carbon Footprint Tracker
+EcoTrace: Carbon Footprint Tracker
+
 EcoTrace is a web-based application designed to help individuals estimate their annual carbon footprint based on various lifestyle factors, including home energy, transportation, diet, waste, and consumption habits. It provides a breakdown of emissions by category, tracks historical footprint data, and offers personalized tips for reducing environmental impact.
 
 Features
